@@ -15,7 +15,8 @@ import (
 type MovieService interface {
 	GetAllMovies(ctx *gin.Context, limit int, lastId string, searchText string) ([]models.Movie, error)
 	GetMovieDetails(ctx *gin.Context, movieId string) (*models.Movie, error)
-	GetShowsByLocation(ctx *gin.Context, location models.LocationMessage, movieId string) ([]models.LocationWithShow, error)
+	GetShowsByLocation(ctx *gin.Context, location models.LocationMessage, movieId string, pageSize int, lastId string) ([]models.LocationWithShow, error)
+	GetSeatingAvailability(ctx *gin.Context, showId string) (*models.Show, error)
 }
 
 type movieService struct {
@@ -55,8 +56,9 @@ func (ms *movieService) GetAllMovies(ctx *gin.Context, limit int, lastId string,
 	return ms.movieRepo.GetAllMovies(ctx, filter, opts)
 }
 
-func (ms *movieService) GetShowsByLocation(ctx *gin.Context, location models.LocationMessage, movieId string) ([]models.LocationWithShow, error) {
-	locations, err := ms.movieRepo.GetLocationByCoordinates(ctx, location)
+func (ms *movieService) GetShowsByLocation(ctx *gin.Context, location models.LocationMessage, movieId string, pageSize int, lastId string) ([]models.LocationWithShow, error) {
+
+	locations, err := ms.movieRepo.GetLocationByCoordinates(ctx, location, int64(pageSize), lastId)
 	if err != nil {
 		return nil, err
 	}
@@ -69,20 +71,18 @@ func (ms *movieService) GetShowsByLocation(ctx *gin.Context, location models.Loc
 		locationsID = append(locationsID, location.ID.Hex())
 	}
 
-	currentTime := time.Now().UTC()
-	// Subtract 1 hour from current time to show ongoing shows
-	currentTime = currentTime.Add(-time.Hour)
+	currentTimeEpoch := time.Now().Add(-time.Hour).UTC().Unix()
 
 	sort := bson.M{"show_timing": 1}
-	opts := options.Find().SetSort(sort)
+	proj := bson.M{"_id": 1, "movie_id": 1, "movie_title": 1, "screen_number": 1, "show_timing_epoch": 1, "show_type": 1, "location_id": 1, "show_timing": 1}
+	opts := options.Find().SetSort(sort).SetProjection(proj)
 	filter := bson.M{
 		"location_id": bson.M{"$in": locationsID},
 		"movie_id":    movieId,
-		"end_date": bson.M{
-			"$gte": currentTime,
+		"show_timing_epoch": bson.M{
+			"$gte": currentTimeEpoch,
 		},
 	} // Show shows for next 3 days
-
 	shows, err := ms.movieRepo.GetShowsByFilter(ctx, filter, opts)
 	if err != nil {
 		return nil, err
@@ -105,7 +105,7 @@ func (ms *movieService) GetShowsByLocation(ctx *gin.Context, location models.Loc
 		for _, show := range responseShows {
 			// Show time is in epoch, convert to hours and minutes for display
 			showTime := time.Unix(show.ShowTimingEpoch, 0).UTC()
-			show.ShowTiming = showTime
+			show.ShowTiming = &showTime
 			showMap[show.ShowType] = append(showMap[show.ShowType], show)
 		}
 		var rs []map[string][]models.Show
@@ -119,4 +119,8 @@ func (ms *movieService) GetShowsByLocation(ctx *gin.Context, location models.Loc
 		return nil, errors.New("no shows found for the given location and movie")
 	}
 	return response, nil
+}
+
+func (ms *movieService) GetSeatingAvailability(ctx *gin.Context, showId string) (*models.Show, error) {
+	return ms.movieRepo.GetShowById(ctx, showId)
 }

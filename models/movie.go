@@ -19,14 +19,28 @@ type Movie struct {
 
 type Show struct {
 	ID              primitive.ObjectID `json:"id,omitempty" bson:"_id,omitempty"`
-	ShowId          string             `json:"show_id,omitempty" bson:"show_id"` // Unique identifier for the show (movie_id + show_type + location_id + screen_number)
 	MovieID         string             `json:"movie_id" bson:"movie_id"`
 	MovieTitle      string             `json:"movie_title" bson:"movie_title"`
 	ScreenNumber    int32              `json:"screen_number" bson:"screen_number"`
 	ShowTimingEpoch int64              `json:"show_timing_epoch" bson:"show_timing_epoch"`
-	ShowTiming      time.Time          `json:"show_timing" bson:"show_timing"`
 	ShowType        string             `json:"show_type" bson:"show_type"`
 	LocationID      string             `json:"location_id" bson:"location_id"`
+	Exits           []string           `json:"exits,omitempty" bson:"exits"`
+	SeatRows        []SeatRow          `json:"seat_rows,omitempty" bson:"seat_rows"`
+	ShowTiming      *time.Time         `json:"show_timing,omitempty" bson:"show_timing,omitempty"` // This is only for response, not stored in the database
+}
+
+type SeatRow struct {
+	Row   string `json:"row" bson:"row"`
+	Seats []Seat `json:"seats" bson:"seats"`
+}
+
+type Seat struct {
+	Type       string  `json:"type" bson:"type"`     // VIP, Regular, etc. Also can be AISLE to show the aisle
+	Status     string  `json:"status" bson:"status"` // available, booked
+	BookingID  string  `json:"booking_id,omitempty" bson:"booking_id"`
+	SeatNumber string  `json:"seat_number" bson:"seat_number"` // row + number. Ex- A1, B1, C1, etc.
+	Cost       float64 `json:"cost" bson:"cost"`               // price per seat
 }
 
 type Location struct {

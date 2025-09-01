@@ -75,13 +75,15 @@ func (mc *movieController) GetMovieShows(ctx *gin.Context) {
 		apiresponse.NewErrorResponse(ctx, errors.New("invalid latitude"), http.StatusBadRequest)
 		return
 	}
+	limit, _ := strconv.Atoi(ctx.DefaultQuery("pageSize", "10"))
+	lastID := ctx.DefaultQuery("lastId", "")
 	// Read messages from client
 	locationInfo := models.LocationMessage{
 		Lat: lat,
 		Lng: lng,
 	}
 	// Fetch nearby movie shows using location message
-	shows, err := mc.movieService.GetShowsByLocation(ctx, locationInfo, movieID)
+	shows, err := mc.movieService.GetShowsByLocation(ctx, locationInfo, movieID, limit, lastID)
 	if err != nil {
 		log.Println("Error fetching movie shows:", err)
 		apiresponse.NewErrorResponse(ctx, err, http.StatusBadRequest)
@@ -95,6 +97,14 @@ func (mc *movieController) GetSeatingAvailability(ctx *gin.Context) {
 		apiresponse.NewErrorResponse(ctx, errors.New("movie id is required"), http.StatusBadRequest)
 		return
 	}
+
+	show, err := mc.movieService.GetSeatingAvailability(ctx, showId)
+	if err != nil {
+		log.Println("Error fetching seating availability:", err)
+		apiresponse.NewErrorResponse(ctx, err, http.StatusBadRequest)
+		return
+	}
+	apiresponse.NewSuccessResponse(ctx, show, http.StatusOK)
 }
 
 func NewMovieController(movieService service.MovieService) MovieController {

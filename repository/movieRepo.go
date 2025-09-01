@@ -14,8 +14,9 @@ import (
 type MovieRepository interface {
 	GetAllMovies(ctx context.Context, filter bson.M, opts ...*options.FindOptions) ([]models.Movie, error)
 	GetMovieById(ctx context.Context, id string) (*models.Movie, error)
-	GetLocationByCoordinates(ctx context.Context, location models.LocationMessage) ([]*models.Location, error)
+	GetLocationByCoordinates(ctx context.Context, location models.LocationMessage, pageSize int64, lastId string) ([]*models.Location, error)
 	GetShowsByFilter(ctx context.Context, filter bson.M, opts ...*options.FindOptions) ([]models.Show, error)
+	GetShowById(ctx context.Context, id string) (*models.Show, error)
 }
 
 type movieRepository struct {
@@ -52,7 +53,8 @@ func (mr *movieRepository) GetMovieById(ctx context.Context, id string) (*models
 	return movie, nil
 }
 
-func (mr *movieRepository) GetLocationByCoordinates(ctx context.Context, location models.LocationMessage) ([]*models.Location, error) {
+func (mr *movieRepository) GetLocationByCoordinates(ctx context.Context, location models.LocationMessage, pageSize int64, lastId string) ([]*models.Location, error) {
+	locationOpts := options.Find().SetLimit(pageSize)
 	filter := bson.M{
 		"location": bson.M{
 			"$near": bson.M{
@@ -64,8 +66,15 @@ func (mr *movieRepository) GetLocationByCoordinates(ctx context.Context, locatio
 			},
 		},
 	}
+	if lastId != "" {
+		id, err := primitive.ObjectIDFromHex(lastId)
+		if err != nil {
+			return nil, err
+		}
+		filter["_id"] = bson.M{"$gt": id}
+	}
 	var locations []*models.Location
-	cursor, err := mr.db.Collection("location").Find(ctx, filter)
+	cursor, err := mr.db.Collection("location").Find(ctx, filter, locationOpts)
 	if err != nil {
 		return nil, err
 	}
@@ -90,6 +99,19 @@ func (mr *movieRepository) GetShowsByFilter(ctx context.Context, filter bson.M, 
 		return nil, err
 	}
 	return result, nil // return all shows that match the filter criteria
+}
+
+func (mr *movieRepository) GetShowById(ctx context.Context, id string) (*models.Show, error) {
+	show := &models.Show{}
+	objId, err := primitive.ObjectIDFromHex(id)
+	if err != nil {
+		return nil, err
+	}
+	err = mr.db.Collection("show").FindOne(ctx, bson.D{{"_id", objId}}).Decode(show)
+	if err != nil {
+		return nil, err
+	}
+	return show, nil
 }
 
 func NewMovieRepository(client *mongo.Client) MovieRepository {
