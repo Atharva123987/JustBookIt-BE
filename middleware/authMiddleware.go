@@ -8,3 +8,10 @@ func AuthMiddleware() gin.HandlerFunc {
 		ctx.Next()                                     // continue to the next middleware/handler
 	}
 }
+
+func AnonymousMiddleware() gin.HandlerFunc {
+	return func(ctx *gin.Context) {
+		ctx.Set("lat", "19.215126175385713")
+		ctx.Set("lng", "72.84057728596858")
+	}
+}

@@ -56,8 +56,8 @@ type MongoLocation struct {
 }
 
 type LocationMessage struct {
-	Lat float64 `json:"lat"`
-	Lng float64 `json:"lng"`
+	Lat *float64 `json:"lat"`
+	Lng *float64 `json:"lng"`
 }
 
 type LocationWithShow struct {

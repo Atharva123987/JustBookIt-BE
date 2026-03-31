@@ -65,23 +65,38 @@ func (mc *movieController) GetMovieShows(ctx *gin.Context) {
 		apiresponse.NewErrorResponse(ctx, errors.New("movie id is required"), http.StatusBadRequest)
 		return
 	}
-	lng, err := strconv.ParseFloat(ctx.DefaultQuery("lng", "0"), 64)
-	if err != nil {
-		apiresponse.NewErrorResponse(ctx, errors.New("invalid longitude"), http.StatusBadRequest)
+	lngString := ctx.GetString("lng")
+	if lngString == "" {
+		apiresponse.NewErrorResponse(ctx, errors.New("location lng is required"), http.StatusBadRequest)
 		return
 	}
-	lat, err := strconv.ParseFloat(ctx.DefaultQuery("lat", "0"), 64)
-	if err != nil {
-		apiresponse.NewErrorResponse(ctx, errors.New("invalid latitude"), http.StatusBadRequest)
+	latString := ctx.GetString("lat")
+	if lngString == "" {
+		apiresponse.NewErrorResponse(ctx, errors.New("location lat is required"), http.StatusBadRequest)
 		return
 	}
+	locationInfo := &models.LocationMessage{}
+	if latString != "" && lngString != "" {
+		lng, err := strconv.ParseFloat(lngString, 64)
+		if err != nil {
+			apiresponse.NewErrorResponse(ctx, errors.New("invalid longitude"), http.StatusBadRequest)
+			return
+		}
+		lat, err := strconv.ParseFloat(latString, 64)
+		if err != nil {
+			apiresponse.NewErrorResponse(ctx, errors.New("invalid latitude"), http.StatusBadRequest)
+			return
+		}
+		locationInfo = &models.LocationMessage{
+			Lat: &lat,
+			Lng: &lng,
+		}
+	}
+
 	limit, _ := strconv.Atoi(ctx.DefaultQuery("pageSize", "10"))
 	lastID := ctx.DefaultQuery("lastId", "")
 	// Read messages from client
-	locationInfo := models.LocationMessage{
-		Lat: lat,
-		Lng: lng,
-	}
+
 	// Fetch nearby movie shows using location message
 	shows, err := mc.movieService.GetShowsByLocation(ctx, locationInfo, movieID, limit, lastID)
 	if err != nil {

@@ -10,7 +10,8 @@ import (
 )
 
 type BookingService interface {
-	ReserveMovieSeat(ctx context.Context, showId string, seatNumbers []string, userId string) (*models.InitiatePaymentResponse, error)
+	ReserveMovieSeat(ctx context.Context, showId string, noOfSeats int, seatNumbers []string, userId string) (*models.InitiatePaymentResponse, error)
+	GetBookings(ctx context.Context, userId string) ([]*models.Booking, error)
 }
 
 type bookingService struct {
@@ -42,13 +43,9 @@ func (bs *bookingService) reserveSeat(ctx context.Context, showId string, seatNu
 	return nil
 }
 
-func (bs *bookingService) createBookingRecord(ctx context.Context, showId string, seats []*models.Seat, bookingId string, userId string) (*models.Booking, error) {
+func (bs *bookingService) createBookingRecord(ctx context.Context, showId string, seatNumbers []string, bookingId string, userId string) (*models.Booking, error) {
 	var paymentAmount float64 = 0.0
-	var seatNumbers []string
-	for _, seat := range seats {
-		paymentAmount += seat.Cost
-		seatNumbers = append(seatNumbers, seat.SeatNumber)
-	}
+
 	booking := &models.Booking{
 		ShowId:      showId,
 		SeatNumbers: seatNumbers,
@@ -61,23 +58,25 @@ func (bs *bookingService) createBookingRecord(ctx context.Context, showId string
 		},
 	}
 
-	err := bs.bookingRepository.CreateBooking(ctx, booking)
+	id, err := bs.bookingRepository.CreateBooking(ctx, booking)
 	if err != nil {
 		return nil, err
 	}
+	booking.ID = id
 	return booking, nil
 }
 
-func (bs *bookingService) ReserveMovieSeat(ctx context.Context, showId string, seatNumbers []string, userId string) (*models.InitiatePaymentResponse, error) {
+func (bs *bookingService) ReserveMovieSeat(ctx context.Context, showId string, noOfSeats int, seatNumbers []string, userId string) (*models.InitiatePaymentResponse, error) {
 	bookingId := generateBookingId()
-	seats, err := bs.bookingRepository.GetSeats(ctx, showId, seatNumbers)
+
+	seats, seatNumbers, err := bs.bookingRepository.GetSeats(ctx, showId, noOfSeats, seatNumbers)
 	if err != nil {
 		return nil, err
 	}
 	if len(seats) == 0 {
 		return nil, constants.ErrSeatNotFound
 	}
-	if len(seats) != len(seatNumbers) {
+	if len(seats) != noOfSeats {
 		return nil, constants.ErrInvalidSeatNum
 	}
 	for _, seat := range seats {
@@ -91,7 +90,7 @@ func (bs *bookingService) ReserveMovieSeat(ctx context.Context, showId string, s
 		return nil, err
 	}
 	// create booking record
-	booking, err := bs.createBookingRecord(ctx, showId, seats, bookingId, userId)
+	booking, err := bs.createBookingRecord(ctx, showId, seatNumbers, bookingId, userId)
 	if err != nil {
 		return nil, err
 	}
@@ -101,6 +100,14 @@ func (bs *bookingService) ReserveMovieSeat(ctx context.Context, showId string, s
 		return nil, err
 	}
 	res.Booking = booking
-
+	res.SeatNumbers = seatNumbers
 	return res, nil
+}
+
+func (bs *bookingService) GetBookings(ctx context.Context, userId string) ([]*models.Booking, error) {
+	bookings, err := bs.bookingRepository.GetBookingByUserId(ctx, userId)
+	if err != nil {
+		return nil, err
+	}
+	return bookings, nil
 }

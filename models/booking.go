@@ -1,13 +1,15 @@
 package models
 
+import "go.mongodb.org/mongo-driver/bson/primitive"
+
 type Booking struct {
-	ID          string      `json:"id"`
-	BookingId   string      `json:"booking_id"`
-	UserId      string      `json:"user_id"`
-	ShowId      string      `json:"show_id"`
-	SeatNumbers []string    `json:"seat_numbers"`
-	PaymentInfo PaymentInfo `json:"payment_info"`
-	Status      string      `json:"status"`
+	ID          primitive.ObjectID `json:"id,omitempty" bson:"_id,omitempty"`
+	BookingId   string             `json:"booking_id"`
+	UserId      string             `json:"user_id"`
+	ShowId      string             `json:"show_id"`
+	SeatNumbers []string           `json:"seat_numbers"`
+	PaymentInfo PaymentInfo        `json:"payment_info"`
+	Status      string             `json:"status"`
 }
 
 type PaymentInfo struct {

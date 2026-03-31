@@ -1,4 +1,4 @@
-package main
+package router
 
 import (
 	"context"
@@ -44,7 +44,9 @@ func NewRouter() {
 	r.Use(gin.Recovery())
 
 	// Middleware
-	auth := middleware.AuthMiddleware
+	userAuth := middleware.AuthMiddleware
+	anonMiddleware := middleware.AnonymousMiddleware
+	r.Use(anonMiddleware())
 
 	movieRepository := repository.NewMovieRepository(mongoDbAdapter)
 	bookingRepository := repository.NewBookingRepository(mongoDbAdapter, movieRepository)
@@ -57,6 +59,7 @@ func NewRouter() {
 	movieController := controller.NewMovieController(movieService)
 	bookingController := controller.NewBookingController(bookingService)
 	ticketController := controller.NewTicketController()
+	webhookController := controller.NewWebhookController()
 
 	// Routes
 	movieRoute := r.Group("movie")
@@ -67,18 +70,24 @@ func NewRouter() {
 		movieRoute.GET("seats/:showId", movieController.GetSeatingAvailability) // Gets the seating availability for the show. For ex- 12pm show at Inorbit
 	}
 
-	bookRoute := movieRoute.Group("/book")
+	bookRoute := movieRoute.Group("book")
 	{
-		bookRoute.GET("", auth(), bookingController.GetBookings)                        // Get bookings for the user
-		bookRoute.POST("", auth(), bookingController.ReserveMovieSeat)                  // This will hold the seat and initialize payment and return the booking id
-		bookRoute.POST("status/:bookingId", auth(), bookingController.GetBookingStatus) // This will update the payment status (websocket)
+		bookRoute.GET("", userAuth(), bookingController.GetBookings)                            // Get bookings for the user
+		bookRoute.POST("", userAuth(), bookingController.ReserveMovieSeat)                      // This will hold the seat and initialize payment and return the booking id
+		bookRoute.PATCH("status/:bookingId", userAuth(), bookingController.UpdateBookingStatus) // This will update the payment status (websocket)
 	}
 
 	ticketRoute := r.Group("/ticket")
 	{
-		ticketRoute.GET("/:bookingId", auth(), ticketController.GetTicket) // Get ticket by booking id, it should be rotating QR / rotating id (websocket)
-		ticketRoute.POST("", auth(), ticketController.VerifyTicket)        // Verify the ticket
+		ticketRoute.GET("/:bookingId", userAuth(), ticketController.GetTicket) // Get ticket by booking id, it should be rotating QR / rotating id (websocket)
+		ticketRoute.POST("", userAuth(), ticketController.VerifyTicket)        // Verify the ticket
 	}
+
+	webhookRoute := r.Group("/webhook")
+	{
+		webhookRoute.POST("/stripe", webhookController.StripeWebhook)
+	}
+
 	if err := r.Run(":8080"); err != nil {
 		log.Fatal(err)
 	}

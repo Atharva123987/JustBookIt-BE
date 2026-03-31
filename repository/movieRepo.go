@@ -14,7 +14,7 @@ import (
 type MovieRepository interface {
 	GetAllMovies(ctx context.Context, filter bson.M, opts ...*options.FindOptions) ([]models.Movie, error)
 	GetMovieById(ctx context.Context, id string) (*models.Movie, error)
-	GetLocationByCoordinates(ctx context.Context, location models.LocationMessage, pageSize int64, lastId string) ([]*models.Location, error)
+	GetLocationByCoordinates(ctx context.Context, location *models.LocationMessage, pageSize int64, lastId string) ([]*models.Location, error)
 	GetShowsByFilter(ctx context.Context, filter bson.M, opts ...*options.FindOptions) ([]models.Show, error)
 	GetShowById(ctx context.Context, id string) (*models.Show, error)
 }
@@ -53,14 +53,17 @@ func (mr *movieRepository) GetMovieById(ctx context.Context, id string) (*models
 	return movie, nil
 }
 
-func (mr *movieRepository) GetLocationByCoordinates(ctx context.Context, location models.LocationMessage, pageSize int64, lastId string) ([]*models.Location, error) {
+func (mr *movieRepository) GetLocationByCoordinates(ctx context.Context, location *models.LocationMessage, pageSize int64, lastId string) ([]*models.Location, error) {
+	if location.Lng == nil || location.Lat == nil {
+		return nil, nil
+	}
 	locationOpts := options.Find().SetLimit(pageSize)
 	filter := bson.M{
 		"location": bson.M{
 			"$near": bson.M{
 				"$geometry": bson.M{
 					"type":        "Point",
-					"coordinates": []float64{location.Lng, location.Lat}, // user's location [lng, lat]
+					"coordinates": []float64{*location.Lng, *location.Lat}, // user's location [lng, lat]
 				},
 				"$maxDistance": 10000, // in meters
 			},

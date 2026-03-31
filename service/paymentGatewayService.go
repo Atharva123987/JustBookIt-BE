@@ -67,8 +67,8 @@ func (s *Stripe) InitiatePayment(amount int64) (*models.InitiatePaymentResponse,
 				Quantity: stripe.Int64(1),
 			},
 		},
-		SuccessURL: stripe.String("https://yourapp.com/payment/status/success?session_id={CHECKOUT_SESSION_ID}"),
-		CancelURL:  stripe.String("https://yourapp.com/payment/status/cancel"),
+		SuccessURL: stripe.String("http://localhost:5173/payment/status/success?session_id={CHECKOUT_SESSION_ID}"),
+		CancelURL:  stripe.String("http://localhost:5173/payment/status/cancel"),
 	}
 
 	// This will auto-create a Customer if you don't set params.Customer
