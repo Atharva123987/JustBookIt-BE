@@ -27,7 +27,9 @@ type Show struct {
 	LocationID      string             `json:"location_id" bson:"location_id"`
 	Exits           []string           `json:"exits,omitempty" bson:"exits"`
 	SeatRows        []SeatRow          `json:"seat_rows,omitempty" bson:"seat_rows"`
-	ShowTiming      *time.Time         `json:"show_timing,omitempty" bson:"show_timing,omitempty"` // This is only for response, not stored in the database
+
+	// ❗ Response-only field (not stored in DB)
+	ShowTiming *time.Time `json:"show_timing,omitempty" bson:"-"`
 }
 
 type SeatRow struct {
@@ -36,10 +38,10 @@ type SeatRow struct {
 }
 
 type Seat struct {
-	Type       string  `json:"type" bson:"type"`     // VIP, Regular, etc. Also can be AISLE to show the aisle
+	Type       string  `json:"type" bson:"type"`     // VIP, Regular, AISLE
 	Status     string  `json:"status" bson:"status"` // available, booked
-	BookingID  string  `json:"booking_id,omitempty" bson:"booking_id"`
-	SeatNumber string  `json:"seat_number" bson:"seat_number"` // row + number. Ex- A1, B1, C1, etc.
+	BookingID  string  `json:"booking_id,omitempty" bson:"booking_id,omitempty"`
+	SeatNumber string  `json:"seat_number" bson:"seat_number"` // A1, B1, etc.
 	Cost       float64 `json:"cost" bson:"cost"`               // price per seat
 }
 
@@ -51,16 +53,16 @@ type Location struct {
 }
 
 type MongoLocation struct {
-	Type        string    `json:"type"` // Point or Polygon
-	Coordinates []float64 `json:"coordinates"`
+	Type        string    `json:"type" bson:"type"`               // Point or Polygon
+	Coordinates []float64 `json:"coordinates" bson:"coordinates"` // [lng, lat]
 }
 
 type LocationMessage struct {
-	Lat *float64 `json:"lat"`
-	Lng *float64 `json:"lng"`
+	Lat *float64 `json:"lat,omitempty" bson:"lat,omitempty"`
+	Lng *float64 `json:"lng,omitempty" bson:"lng,omitempty"`
 }
 
 type LocationWithShow struct {
-	Location
-	Shows []map[string][]Show `json:"shows"`
+	Location `bson:",inline"`
+	Shows    []map[string][]Show `json:"shows" bson:"shows"`
 }

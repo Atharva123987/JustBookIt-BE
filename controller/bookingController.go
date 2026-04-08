@@ -11,8 +11,8 @@ import (
 
 type BookingController interface {
 	GetBookings(ctx *gin.Context)
+	GetBookingByBookingId(ctx *gin.Context)
 	ReserveMovieSeat(ctx *gin.Context)
-	UpdateBookingStatus(ctx *gin.Context)
 }
 
 type bookingController struct {
@@ -31,6 +31,23 @@ func (mc *bookingController) GetBookings(ctx *gin.Context) {
 		return
 	}
 	apiresponse.NewSuccessResponse(ctx, bookings, http.StatusOK)
+}
+func (mc *bookingController) GetBookingByBookingId(ctx *gin.Context) {
+	bookingId := ctx.Param("bookingId")
+	if bookingId == "" {
+		apiresponse.NewErrorResponse(ctx, errors.New("bookingId is required"), http.StatusBadRequest)
+		return
+	}
+	booking, err := mc.bookingService.GetBookingByBookingId(ctx, bookingId)
+	if err != nil {
+		apiresponse.NewErrorResponse(ctx, err, http.StatusBadRequest)
+		return
+	}
+	if booking == nil {
+		apiresponse.NewErrorResponse(ctx, errors.New("no booking found"), http.StatusBadRequest)
+		return
+	}
+	apiresponse.NewSuccessResponse(ctx, booking, http.StatusOK)
 }
 
 type BookSeatRequest struct {
@@ -56,10 +73,6 @@ func (mc *bookingController) ReserveMovieSeat(ctx *gin.Context) {
 		return
 	}
 	apiresponse.NewSuccessResponse(ctx, res, http.StatusOK)
-}
-
-func (mc *bookingController) UpdateBookingStatus(ctx *gin.Context) {
-
 }
 
 func NewBookingController(bookingService service.BookingService) BookingController {

@@ -13,7 +13,7 @@ import (
 )
 
 type PaymentGatewayService interface {
-	InitiatePayment(amount int64) (*models.InitiatePaymentResponse, error)
+	InitiatePayment(amount int64, bookingId string) (*models.InitiatePaymentResponse, error)
 }
 
 type Stripe struct{}
@@ -50,7 +50,7 @@ func ExecuteApiRequest(req *http.Request) (map[string]any, error) {
 	return apiResponse, nil
 }
 
-func (s *Stripe) InitiatePayment(amount int64) (*models.InitiatePaymentResponse, error) {
+func (s *Stripe) InitiatePayment(amount int64, bookingId string) (*models.InitiatePaymentResponse, error) {
 	stripe.Key = config.AppConfig.StripeSecret // your real secret key here
 
 	params := &stripe.CheckoutSessionParams{
@@ -67,8 +67,9 @@ func (s *Stripe) InitiatePayment(amount int64) (*models.InitiatePaymentResponse,
 				Quantity: stripe.Int64(1),
 			},
 		},
-		SuccessURL: stripe.String("http://localhost:5173/payment/status/success?session_id={CHECKOUT_SESSION_ID}"),
-		CancelURL:  stripe.String("http://localhost:5173/payment/status/cancel"),
+		ClientReferenceID: stripe.String(bookingId),
+		SuccessURL:        stripe.String("http://localhost:5173/payment/status/success?session_id={CHECKOUT_SESSION_ID}"),
+		CancelURL:         stripe.String("http://localhost:5173/payment/status/cancel"),
 	}
 
 	// This will auto-create a Customer if you don't set params.Customer
@@ -78,5 +79,10 @@ func (s *Stripe) InitiatePayment(amount int64) (*models.InitiatePaymentResponse,
 	}
 	return &models.InitiatePaymentResponse{
 		PaymentLink: sess.URL,
+		Booking: &models.Booking{
+			PaymentInfo: models.PaymentInfo{
+				PaymentAmount: float64(amount),
+			},
+		},
 	}, nil
 }

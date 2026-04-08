@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"net/http"
 	apiresponse "ticketBookingSystem/internal/apiResponse"
+	"ticketBookingSystem/service"
 
 	"github.com/gin-gonic/gin"
-	"go.mongodb.org/mongo-driver/bson"
 )
 
 type WebhookController interface {
@@ -17,7 +17,9 @@ type WebhookController interface {
 var StripeWebhookCheckoutSessionCompleted string = "checkout.session.completed"
 var StripeWebhookInvoicePaid = "invoice.paid"
 
-type webhookController struct{}
+type webhookController struct {
+	bookingService service.BookingService
+}
 
 func (wc *webhookController) StripeWebhook(ctx *gin.Context) {
 	var data map[string]interface{}
@@ -55,47 +57,34 @@ func (wc *webhookController) HandleStripeCheckoutAndInvoice(ctx *gin.Context, bo
 		apiresponse.NewErrorResponse(ctx, errors.New("data.object not found or invalid"), http.StatusPreconditionFailed)
 		return
 	}
-	var checkoutSessionId, status, stripeSubscriptionId, latestInvoiceId, customerId string
-	var filter bson.M
-	var err error
+	var status, clientReferenceId, customerId string
 	switch webhookType {
 	case StripeWebhookCheckoutSessionCompleted:
-		checkoutSessionId, ok = dataObject["id"].(string)
-		if !ok {
-			apiresponse.NewErrorResponse(ctx, errors.New("id not found in data object"), http.StatusPreconditionFailed)
-			return
-		}
+
 		status, ok = dataObject["payment_status"].(string)
 		if !ok {
 			apiresponse.NewErrorResponse(ctx, errors.New("payment_status not found in data object"), http.StatusPreconditionFailed)
 			return
 		}
-		latestInvoiceId, ok = dataObject["invoice"].(string)
-		if !ok {
-			fmt.Println("invoice not found in data object")
-		}
-		stripeSubscriptionId, ok = dataObject["subscription"].(string)
-		if !ok {
-			fmt.Println("subscription not found in data object")
-		}
+		fmt.Print(status)
 		customerId, ok = dataObject["customer"].(string)
 		if !ok {
 			fmt.Println("customer not found in data object")
 		}
-		filter = bson.M{"payment_details.payment_id": checkoutSessionId}
-	case StripeWebhookInvoicePaid:
-		status, stripeSubscriptionId, latestInvoiceId, customerId, err = extractStripeInvoiceFields(ctx, dataObject)
-		if err != nil {
-			apiresponse.NewErrorResponse(ctx, err, http.StatusPreconditionFailed)
-			return
+		clientReferenceId, ok = dataObject["client_reference_id"].(string)
+		if !ok {
+			fmt.Println("client_reference_id not found in data object")
 		}
-		filter = bson.M{"payment_info.payment_id": stripeSubscriptionId}
+
 	default:
 		apiresponse.NewErrorResponse(ctx, errors.New("Unhandled webhook type - "+webhookType), http.StatusBadRequest)
 		return
 	}
-	fmt.Println(status, latestInvoiceId, customerId, filter)
-	// err  := wc.webhookService.UpdateBookingStatus()
+	err := wc.bookingService.ConfirmBooking(ctx, customerId, clientReferenceId)
+	if err != nil {
+		fmt.Printf("error while confirming booking %s", err.Error())
+		return
+	}
 }
 
 func extractStripeInvoiceFields(ctx *gin.Context, dataObject map[string]interface{}) (status, stripeSubscriptionId, latestInvoiceId, customerId string, err error) {
@@ -119,6 +108,9 @@ func extractStripeInvoiceFields(ctx *gin.Context, dataObject map[string]interfac
 	return status, stripeSubscriptionId, latestInvoiceId, customerId, nil
 }
 
-func NewWebhookController() WebhookController {
-	return &webhookController{}
+func NewWebhookController(bookingService service.BookingService) WebhookController {
+	return &webhookController{
+		bookingService: bookingService,
+	}
+
 }

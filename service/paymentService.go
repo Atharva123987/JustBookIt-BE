@@ -5,7 +5,7 @@ import (
 )
 
 type PaymentService interface {
-	InitiatePayment(amount float64, customerID string) (*models.InitiatePaymentResponse, error)
+	InitiatePayment(amount float64, customerID string, bookingId string) (*models.InitiatePaymentResponse, error)
 }
 
 type paymentService struct{}
@@ -14,9 +14,9 @@ func NewPaymentService() PaymentService {
 	return &paymentService{}
 }
 
-func (ps *paymentService) InitiatePayment(amount float64, customerID string) (*models.InitiatePaymentResponse, error) {
+func (ps *paymentService) InitiatePayment(amount float64, customerID string, bookingId string) (*models.InitiatePaymentResponse, error) {
 	gateway := GetPaymentGatewayService("stripe") // Replace with actual payment gateway implementation
-	res, err := gateway.InitiatePayment(int64(amount))
+	res, err := gateway.InitiatePayment(int64(amount), bookingId)
 	if err != nil {
 		return nil, err
 	}

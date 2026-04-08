@@ -7,11 +7,15 @@ import (
 	"ticketBookingSystem/internal/constants"
 	"ticketBookingSystem/models"
 	"ticketBookingSystem/repository"
+
+	"go.mongodb.org/mongo-driver/bson"
 )
 
 type BookingService interface {
 	ReserveMovieSeat(ctx context.Context, showId string, noOfSeats int, seatNumbers []string, userId string) (*models.InitiatePaymentResponse, error)
 	GetBookings(ctx context.Context, userId string) ([]*models.Booking, error)
+	ConfirmBooking(ctx context.Context, userId string, bookingId string) error
+	GetBookingByBookingId(ctx context.Context, bookingId string) (*models.Booking, error)
 }
 
 type bookingService struct {
@@ -44,7 +48,6 @@ func (bs *bookingService) reserveSeat(ctx context.Context, showId string, seatNu
 }
 
 func (bs *bookingService) createBookingRecord(ctx context.Context, showId string, seatNumbers []string, bookingId string, userId string) (*models.Booking, error) {
-	var paymentAmount float64 = 0.0
 
 	booking := &models.Booking{
 		ShowId:      showId,
@@ -54,9 +57,9 @@ func (bs *bookingService) createBookingRecord(ctx context.Context, showId string
 		Status:      constants.BookingStatusPending,
 		PaymentInfo: models.PaymentInfo{
 			PaymentStatus: constants.PaymentStatusPending,
-			PaymentAmount: paymentAmount,
 		},
 	}
+	booking.PaymentInfo.PaymentAmount = float64(len((seatNumbers))) * 100
 
 	id, err := bs.bookingRepository.CreateBooking(ctx, booking)
 	if err != nil {
@@ -95,7 +98,7 @@ func (bs *bookingService) ReserveMovieSeat(ctx context.Context, showId string, n
 		return nil, err
 	}
 
-	res, err := bs.paymentService.InitiatePayment(booking.PaymentInfo.PaymentAmount, userId)
+	res, err := bs.paymentService.InitiatePayment(booking.PaymentInfo.PaymentAmount, userId, bookingId)
 	if err != nil {
 		return nil, err
 	}
@@ -110,4 +113,21 @@ func (bs *bookingService) GetBookings(ctx context.Context, userId string) ([]*mo
 		return nil, err
 	}
 	return bookings, nil
+}
+func (bs *bookingService) GetBookingByBookingId(ctx context.Context, bookingId string) (*models.Booking, error) {
+	booking, err := bs.bookingRepository.GetBookingByBookingId(ctx, bookingId)
+	if err != nil {
+		return nil, err
+	}
+	return booking, nil
+}
+
+func (bs *bookingService) ConfirmBooking(ctx context.Context, userId string, bookingId string) error {
+	filter := bson.M{"booking_id": bookingId}
+	update := bson.M{
+		"status":                      "confirmed",
+		"payment_info.payment_status": "success",
+	}
+	err := bs.bookingRepository.UpdateBooking(ctx, update, filter)
+	return err
 }

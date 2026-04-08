@@ -27,6 +27,8 @@ type BookingRepository interface {
 		booking *models.Booking,
 	) (primitive.ObjectID, error)
 	GetBookingByUserId(ctx context.Context, userId string) ([]*models.Booking, error)
+	GetBookingByBookingId(ctx context.Context, bookingId string) (*models.Booking, error)
+	UpdateBooking(ctx context.Context, update bson.M, filter bson.M) error
 }
 
 type bookingRepository struct {
@@ -188,13 +190,13 @@ func (mr *bookingRepository) CreateBooking(
 
 func (mr *bookingRepository) GetBookingByUserId(ctx context.Context, userId string) ([]*models.Booking, error) {
 	filter := bson.M{"user_id": userId}
-	movies, err := mr.db.Collection("booking").Find(ctx, filter)
+	bookings, err := mr.db.Collection("booking").Find(ctx, filter)
 	if err != nil {
 		return nil, err
 	}
 
 	var result []*models.Booking
-	err = movies.All(ctx, &result)
+	err = bookings.All(ctx, &result)
 	if err != nil {
 		return nil, err
 	}
@@ -202,4 +204,40 @@ func (mr *bookingRepository) GetBookingByUserId(ctx context.Context, userId stri
 		return []*models.Booking{}, nil
 	}
 	return result, nil
+}
+func (mr *bookingRepository) GetBookingByBookingId(ctx context.Context, bookingId string) (*models.Booking, error) {
+	filter := bson.M{"booking_id": bookingId}
+	booking, err := mr.db.Collection("booking").Find(ctx, filter)
+	if err != nil {
+		return nil, err
+	}
+
+	var result []*models.Booking
+	err = booking.All(ctx, &result)
+	if err != nil {
+		return nil, err
+	}
+	if len(result) == 0 {
+		return nil, nil
+	}
+	return result[0], nil
+}
+func (mr *bookingRepository) UpdateBooking(
+	ctx context.Context,
+	update bson.M,
+	filter bson.M,
+) error {
+	updateM := bson.M{
+		"$set": update,
+	}
+	res, err := mr.db.Collection("booking").UpdateOne(ctx, filter, updateM)
+	if err != nil {
+		return err
+	}
+
+	if res.MatchedCount == 0 {
+		return errors.New("booking not found")
+	}
+
+	return nil
 }

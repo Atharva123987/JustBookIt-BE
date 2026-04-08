@@ -50,16 +50,19 @@ func NewRouter() {
 
 	movieRepository := repository.NewMovieRepository(mongoDbAdapter)
 	bookingRepository := repository.NewBookingRepository(mongoDbAdapter, movieRepository)
+	userStateRepository := repository.NewUserStateRepository(mongoDbAdapter)
 
 	movieService := service.NewMovieService(movieRepository)
 	paymentService := service.NewPaymentService()
 	bookingService := service.NewBookingService(bookingRepository, paymentService)
+	userStateService := service.NewUserStateService(userStateRepository)
 
 	// Init providers
 	movieController := controller.NewMovieController(movieService)
 	bookingController := controller.NewBookingController(bookingService)
 	ticketController := controller.NewTicketController()
-	webhookController := controller.NewWebhookController()
+	webhookController := controller.NewWebhookController(bookingService)
+	userStateController := controller.NewUserStateController(userStateService)
 
 	// Routes
 	movieRoute := r.Group("movie")
@@ -68,19 +71,27 @@ func NewRouter() {
 		movieRoute.GET(":movieId", movieController.GetMovieDetails)             // Get movie details like title, desc, cast etc.
 		movieRoute.GET(":movieId/shows", movieController.GetMovieShows)         // Gets the nearby shows according to location
 		movieRoute.GET("seats/:showId", movieController.GetSeatingAvailability) // Gets the seating availability for the show. For ex- 12pm show at Inorbit
-	}
 
-	bookRoute := movieRoute.Group("book")
-	{
-		bookRoute.GET("", userAuth(), bookingController.GetBookings)                            // Get bookings for the user
-		bookRoute.POST("", userAuth(), bookingController.ReserveMovieSeat)                      // This will hold the seat and initialize payment and return the booking id
-		bookRoute.PATCH("status/:bookingId", userAuth(), bookingController.UpdateBookingStatus) // This will update the payment status (websocket)
+		bookRoute := movieRoute.Group("book")
+		{
+			bookRoute.GET("", userAuth(), bookingController.GetBookings)                      // Get bookings for the user
+			bookRoute.GET("/:bookingId", userAuth(), bookingController.GetBookingByBookingId) // Get bookings for the user
+			bookRoute.POST("", userAuth(), bookingController.ReserveMovieSeat)                // This will hold the seat and initialize payment and return the booking id
+
+		}
 	}
 
 	ticketRoute := r.Group("/ticket")
 	{
 		ticketRoute.GET("/:bookingId", userAuth(), ticketController.GetTicket) // Get ticket by booking id, it should be rotating QR / rotating id (websocket)
 		ticketRoute.POST("", userAuth(), ticketController.VerifyTicket)        // Verify the ticket
+	}
+
+	userStateRoute := r.Group("/state")
+	{
+		userStateRoute.GET("/", userAuth(), userStateController.GetState)
+		userStateRoute.POST("/", userAuth(), userStateController.UpdateState)
+		userStateRoute.DELETE("/intent", userAuth(), userStateController.ClearIntent)
 	}
 
 	webhookRoute := r.Group("/webhook")
