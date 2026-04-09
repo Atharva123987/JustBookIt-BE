@@ -68,8 +68,8 @@ func (s *Stripe) InitiatePayment(amount int64, bookingId string) (*models.Initia
 			},
 		},
 		ClientReferenceID: stripe.String(bookingId),
-		SuccessURL:        stripe.String("http://localhost:5173/payment/status/success?session_id={CHECKOUT_SESSION_ID}"),
-		CancelURL:         stripe.String("http://localhost:5173/payment/status/cancel"),
+		SuccessURL:        stripe.String("ticketbookingsystemfe://payment/success?bookingId=" + bookingId),
+		CancelURL:         stripe.String("ticketbookingsystemfe://payment/cancel?bookingId=" + bookingId),
 	}
 
 	// This will auto-create a Customer if you don't set params.Customer
