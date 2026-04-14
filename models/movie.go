@@ -27,10 +27,10 @@ type Show struct {
 	LocationID      string             `json:"location_id" bson:"location_id"`
 	Exits           []string           `json:"exits,omitempty" bson:"exits"`
 	SeatRows        []SeatRow          `json:"seat_rows,omitempty" bson:"seat_rows"`
+	PriceLabel      string             `json:"price_label,omitempty" bson:"price_label"`
 
 	// ❗ Response-only field (not stored in DB)
 	ShowTiming *time.Time `json:"show_timing,omitempty" bson:"-"`
-	PriceLabel string     `json:"price_label,omitempty" bson:"price_label"`
 }
 
 type SeatRow struct {
