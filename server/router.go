@@ -99,7 +99,7 @@ func NewRouter() {
 		webhookRoute.POST("/stripe", webhookController.StripeWebhook)
 	}
 
-	if err := r.Run(config.AppConfig.Port); err != nil {
+	if err := r.Run(":" + config.AppConfig.Port); err != nil {
 		log.Fatal(err)
 	}
 	log.Println("server running at :", config.AppConfig.Port)
