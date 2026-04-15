@@ -23,3 +23,7 @@ const (
 	ShowTypeIMAX = "IMAX"
 	ShowType4DX  = "4DX"
 )
+
+const (
+	Stripe = "Stripe"
+)

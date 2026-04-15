@@ -6,6 +6,7 @@ import (
 	"io"
 	"net/http"
 	"ticketBookingSystem/internal/config"
+	"ticketBookingSystem/internal/constants"
 	"ticketBookingSystem/models"
 
 	"github.com/stripe/stripe-go/v79"
@@ -82,6 +83,7 @@ func (s *Stripe) InitiatePayment(amount int64, bookingId string) (*models.Initia
 		Booking: &models.Booking{
 			PaymentInfo: models.PaymentInfo{
 				PaymentAmount: float64(amount),
+				PaymentMethod: constants.Stripe,
 			},
 		},
 	}, nil

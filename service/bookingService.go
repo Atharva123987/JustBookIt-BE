@@ -57,6 +57,7 @@ func (bs *bookingService) createBookingRecord(ctx context.Context, showId string
 		Status:      constants.BookingStatusPending,
 		PaymentInfo: models.PaymentInfo{
 			PaymentStatus: constants.PaymentStatusPending,
+			PaymentMethod: constants.Stripe,
 		},
 	}
 	booking.PaymentInfo.PaymentAmount = float64(len((seatNumbers))) * 100
