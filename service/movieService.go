@@ -76,7 +76,7 @@ func (ms *movieService) GetShowsByLocation(ctx *gin.Context, location *models.Lo
 	currentTimeEpoch := time.Now().Add(-time.Hour).UTC().Unix()
 
 	sort := bson.M{"show_timing": 1}
-	proj := bson.M{"_id": 1, "movie_id": 1, "movie_title": 1, "screen_number": 1, "show_timing_epoch": 1, "show_type": 1, "location_id": 1, "show_timing": 1}
+	proj := bson.M{"_id": 1, "movie_id": 1, "movie_title": 1, "screen_number": 1, "show_timing_epoch": 1, "show_type": 1, "location_id": 1, "show_timing": 1, "price_label": 1}
 	opts := options.Find().SetSort(sort).SetProjection(proj)
 	filter := bson.M{
 		"movie_id": movieId,
