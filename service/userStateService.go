@@ -8,9 +8,9 @@ import (
 // ---- Interface ----
 
 type UserStateService interface {
-	GetState(ctx context.Context, userID string) (*repository.UserState, error)
-	UpdateState(ctx context.Context, userID string, newState repository.UserState) error
-	ClearIntent(ctx context.Context, userID string) error
+	GetState(ctx context.Context, deviceID string) (*repository.UserState, error)
+	UpdateState(ctx context.Context, deviceID string, newState repository.UserState) error
+	ClearIntent(ctx context.Context, deviceID string) error
 }
 
 // ---- Implementation ----
@@ -29,15 +29,15 @@ func NewUserStateService(repo repository.UserStateRepository) UserStateService {
 // ---- Methods ----
 
 // Get full state
-func (s *userStateService) GetState(ctx context.Context, userID string) (*repository.UserState, error) {
-	return s.repo.GetState(ctx, userID)
+func (s *userStateService) GetState(ctx context.Context, deviceID string) (*repository.UserState, error) {
+	return s.repo.GetState(ctx, deviceID)
 }
 
-func (s *userStateService) UpdateState(ctx context.Context, userID string, newState repository.UserState) error {
-	current, err := s.repo.GetState(ctx, userID)
+func (s *userStateService) UpdateState(ctx context.Context, deviceID string, newState repository.UserState) error {
+	current, err := s.repo.GetState(ctx, deviceID)
 	if err != nil {
 		// If not found, just create
-		return s.repo.UpdateState(ctx, userID, newState)
+		return s.repo.UpdateState(ctx, deviceID, newState)
 	}
 
 	// Merge fields (only overwrite if not nil)
@@ -61,10 +61,10 @@ func (s *userStateService) UpdateState(ctx context.Context, userID string, newSt
 		current.ShowID = newState.ShowID
 	}
 
-	return s.repo.UpdateState(ctx, userID, *current)
+	return s.repo.UpdateState(ctx, deviceID, *current)
 }
 
 // Clear intent
-func (s *userStateService) ClearIntent(ctx context.Context, userID string) error {
-	return s.repo.ClearIntent(ctx, userID)
+func (s *userStateService) ClearIntent(ctx context.Context, deviceID string) error {
+	return s.repo.ClearIntent(ctx, deviceID)
 }

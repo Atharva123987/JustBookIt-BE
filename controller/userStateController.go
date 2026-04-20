@@ -29,13 +29,13 @@ func NewUserStateController(s service.UserStateService) *userStateController {
 
 // GET /user-state/:userId
 func (c *userStateController) GetState(ctx *gin.Context) {
-	userID := ctx.GetString("user_id")
-	if userID == "" {
+	deviceID := ctx.GetString("device_id")
+	if deviceID == "" {
 		apiresponse.NewErrorResponse(ctx, errors.New("user id is required"), http.StatusBadRequest)
 		return
 	}
 
-	state, err := c.service.GetState(ctx, userID)
+	state, err := c.service.GetState(ctx, deviceID)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -48,8 +48,8 @@ func (c *userStateController) GetState(ctx *gin.Context) {
 
 // POST /user-state/:userId
 func (c *userStateController) UpdateState(ctx *gin.Context) {
-	userID := ctx.GetString("user_id")
-	if userID == "" {
+	deviceID := ctx.GetString("device_id")
+	if deviceID == "" {
 		apiresponse.NewErrorResponse(ctx, errors.New("user id is required"), http.StatusBadRequest)
 		return
 	}
@@ -60,7 +60,7 @@ func (c *userStateController) UpdateState(ctx *gin.Context) {
 		return
 	}
 
-	err := c.service.UpdateState(ctx, userID, state)
+	err := c.service.UpdateState(ctx, deviceID, state)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -73,13 +73,13 @@ func (c *userStateController) UpdateState(ctx *gin.Context) {
 
 // DELETE /user-state/:userId/intent
 func (c *userStateController) ClearIntent(ctx *gin.Context) {
-	userID := ctx.GetString("user_id")
-	if userID == "" {
+	deviceID := ctx.GetString("device_id")
+	if deviceID == "" {
 		apiresponse.NewErrorResponse(ctx, errors.New("user id is required"), http.StatusBadRequest)
 		return
 	}
 
-	err := c.service.ClearIntent(ctx, userID)
+	err := c.service.ClearIntent(ctx, deviceID)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return

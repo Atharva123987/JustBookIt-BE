@@ -13,7 +13,8 @@ import (
 // ---- Model ----
 
 type UserState struct {
-	UserID      string    `bson:"user_id" json:"user_id"`
+	// UserID      string    `bson:"user_id" json:"user_id"`
+	DeviceID    string    `bson:"device_id" json:"device_id"`
 	Movie       *string   `bson:"movie,omitempty" json:"movie,omitempty"`
 	NoOfSeats   *int      `bson:"no_of_seats,omitempty" json:"noOfSeats,omitempty"`
 	SeatNumbers []string  `bson:"seat_numbers,omitempty" json:"seatNumbers,omitempty"`
@@ -46,12 +47,12 @@ func NewUserStateRepository(client *mongo.Client) UserStateRepository {
 
 // ---- Methods ----
 
-// Get state by user_id
-func (r *userStateRepository) GetState(ctx context.Context, userID string) (*UserState, error) {
+// Get state by device_id
+func (r *userStateRepository) GetState(ctx context.Context, deviceId string) (*UserState, error) {
 	var state UserState
 
 	err := r.db.Collection("user_state").
-		FindOne(ctx, bson.M{"user_id": userID}).
+		FindOne(ctx, bson.M{"device_id": deviceId}).
 		Decode(&state)
 
 	if err != nil {
@@ -65,8 +66,8 @@ func (r *userStateRepository) GetState(ctx context.Context, userID string) (*Use
 }
 
 // Upsert state
-func (r *userStateRepository) UpdateState(ctx context.Context, userID string, state UserState) error {
-	state.UserID = userID
+func (r *userStateRepository) UpdateState(ctx context.Context, deviceId string, state UserState) error {
+	state.DeviceID = deviceId
 	state.UpdatedAt = time.Now()
 
 	update := bson.M{
@@ -77,7 +78,7 @@ func (r *userStateRepository) UpdateState(ctx context.Context, userID string, st
 
 	_, err := r.db.Collection("user_state").UpdateOne(
 		ctx,
-		bson.M{"user_id": userID},
+		bson.M{"device_id": deviceId},
 		update,
 		opts,
 	)
@@ -86,7 +87,7 @@ func (r *userStateRepository) UpdateState(ctx context.Context, userID string, st
 }
 
 // Clear only intent (and keep rest of state)
-func (r *userStateRepository) ClearIntent(ctx context.Context, userID string) error {
+func (r *userStateRepository) ClearIntent(ctx context.Context, deviceId string) error {
 	update := bson.M{
 		"$unset": bson.M{
 			"intent": "",
@@ -98,7 +99,7 @@ func (r *userStateRepository) ClearIntent(ctx context.Context, userID string) er
 
 	result, err := r.db.Collection("user_state").UpdateOne(
 		ctx,
-		bson.M{"user_id": userID},
+		bson.M{"device_id": deviceId},
 		update,
 	)
 
