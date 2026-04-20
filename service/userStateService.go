@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"errors"
 	"ticketBookingSystem/repository"
 )
 
@@ -30,10 +31,16 @@ func NewUserStateService(repo repository.UserStateRepository) UserStateService {
 
 // Get full state
 func (s *userStateService) GetState(ctx context.Context, deviceID string) (*repository.UserState, error) {
+	if deviceID == "" {
+		return nil, errors.New("device id is empty")
+	}
 	return s.repo.GetState(ctx, deviceID)
 }
 
 func (s *userStateService) UpdateState(ctx context.Context, deviceID string, newState repository.UserState) error {
+	if deviceID == "" {
+		return errors.New("device id is empty")
+	}
 	current, err := s.repo.GetState(ctx, deviceID)
 	if err != nil {
 		// If not found, just create
@@ -66,5 +73,8 @@ func (s *userStateService) UpdateState(ctx context.Context, deviceID string, new
 
 // Clear intent
 func (s *userStateService) ClearIntent(ctx context.Context, deviceID string) error {
+	if deviceID == "" {
+		return errors.New("device id is empty")
+	}
 	return s.repo.ClearIntent(ctx, deviceID)
 }

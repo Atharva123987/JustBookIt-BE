@@ -27,9 +27,9 @@ type UserState struct {
 // ---- Interface ----
 
 type UserStateRepository interface {
-	GetState(ctx context.Context, userID string) (*UserState, error)
-	UpdateState(ctx context.Context, userID string, state UserState) error
-	ClearIntent(ctx context.Context, userID string) error
+	GetState(ctx context.Context, deviceId string) (*UserState, error)
+	UpdateState(ctx context.Context, deviceId string, state UserState) error
+	ClearIntent(ctx context.Context, deviceId string) error
 }
 
 // ---- Implementation ----
