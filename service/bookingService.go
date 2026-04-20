@@ -21,10 +21,11 @@ type BookingService interface {
 type bookingService struct {
 	bookingRepository repository.BookingRepository
 	paymentService    PaymentService
+	movieRepository   repository.MovieRepository
 }
 
-func NewBookingService(bookingRepository repository.BookingRepository, paymentService PaymentService) BookingService {
-	return &bookingService{bookingRepository, paymentService}
+func NewBookingService(bookingRepository repository.BookingRepository, paymentService PaymentService, movieRepository repository.MovieRepository) BookingService {
+	return &bookingService{bookingRepository, paymentService, movieRepository}
 }
 
 const letters = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
@@ -49,12 +50,27 @@ func (bs *bookingService) reserveSeat(ctx context.Context, showId string, seatNu
 
 func (bs *bookingService) createBookingRecord(ctx context.Context, showId string, seatNumbers []string, bookingId string, userId string) (*models.Booking, error) {
 
+	show, err := bs.movieRepository.GetShowById(ctx, showId)
+	if err != nil {
+		return nil, err
+	}
+
+	movieId := show.MovieID
+
+	movie, err := bs.movieRepository.GetMovieById(ctx, movieId)
+	if err != nil {
+		return nil, err
+	}
+
 	booking := &models.Booking{
-		ShowId:      showId,
-		SeatNumbers: seatNumbers,
-		BookingId:   bookingId,
-		UserId:      userId,
-		Status:      constants.BookingStatusPending,
+		ShowId:          showId,
+		SeatNumbers:     seatNumbers,
+		BookingId:       bookingId,
+		UserId:          userId,
+		MovieName:       movie.Title,
+		ShowTimingEpoch: show.ShowTimingEpoch,
+		MoviePoster:     movie.PosterURL,
+		Status:          constants.BookingStatusPending,
 		PaymentInfo: models.PaymentInfo{
 			PaymentStatus: constants.PaymentStatusPending,
 			PaymentMethod: constants.Stripe,

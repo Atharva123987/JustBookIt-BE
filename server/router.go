@@ -54,7 +54,7 @@ func NewRouter() {
 
 	movieService := service.NewMovieService(movieRepository)
 	paymentService := service.NewPaymentService()
-	bookingService := service.NewBookingService(bookingRepository, paymentService)
+	bookingService := service.NewBookingService(bookingRepository, paymentService, movieRepository)
 	userStateService := service.NewUserStateService(userStateRepository)
 
 	// Init providers
