@@ -9,6 +9,7 @@ type Booking struct {
 	ShowId          string             `json:"show_id" bson:"show_id"`
 	MovieName       string             `json:"movie_name" bson:"movie_name"`
 	ShowTimingEpoch int64              `json:"show_timing_epoch" bson:"show_timing_epoch"`
+	MoviePoster     string             `json:"movie_poster" bson:"movie_poster"`
 	SeatNumbers     []string           `json:"seat_numbers" bson:"seat_numbers"`
 	PaymentInfo     PaymentInfo        `json:"payment_info" bson:"payment_info"`
 	Status          string             `json:"status" bson:"status"`
