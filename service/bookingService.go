@@ -96,9 +96,7 @@ func (bs *bookingService) ReserveMovieSeat(ctx context.Context, showId string, n
 	if len(seats) == 0 {
 		return nil, constants.ErrSeatNotFound
 	}
-	if len(seats) != noOfSeats {
-		return nil, constants.ErrInvalidSeatNum
-	}
+
 	for _, seat := range seats {
 		if seat.Status == constants.SeatStatusReserved {
 			return nil, constants.ErrSeatReserved

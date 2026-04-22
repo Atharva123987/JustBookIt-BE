@@ -53,7 +53,7 @@ func (mc *bookingController) GetBookingByBookingId(ctx *gin.Context) {
 type BookSeatRequest struct {
 	ShowID      string   `json:"showId" binding:"required"`
 	SeatNumbers []string `json:"seatNumbers"`
-	NoOfSeats   int      `json:"noOfSeats" binding:"required"`
+	NoOfSeats   int      `json:"noOfSeats"`
 }
 
 func (mc *bookingController) ReserveMovieSeat(ctx *gin.Context) {

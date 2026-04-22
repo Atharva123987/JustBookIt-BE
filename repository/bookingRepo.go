@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"strconv"
+	"ticketBookingSystem/internal/constants"
 	"ticketBookingSystem/models"
 	"ticketBookingSystem/tools"
 
@@ -89,6 +90,9 @@ func (mr *bookingRepository) GetSeats(ctx context.Context, showId string, noOfSe
 		seatNumbers, err = tools.FindBestSeats(show, noOfSeats)
 		if err != nil {
 			return nil, seatNumbers, err
+		}
+		if len(seatNumbers) != noOfSeats {
+			return nil, seatNumbers, constants.ErrInvalidSeatNum
 		}
 	}
 	seats := findSeats(show.SeatRows, seatNumbers)
