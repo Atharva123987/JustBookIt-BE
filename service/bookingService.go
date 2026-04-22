@@ -76,8 +76,8 @@ func (bs *bookingService) createBookingRecord(ctx context.Context, showId string
 			PaymentMethod: constants.Stripe,
 		},
 	}
-	booking.PaymentInfo.PaymentAmount = float64(len((seatNumbers))) * 100
-
+	booking.PaymentInfo.PaymentAmount = float64(len((seatNumbers))) * 100             // TODO: Remove this to keep each seat amount
+	booking.PaymentInfo.ConvenienceFees = booking.PaymentInfo.PaymentAmount * 5 / 100 // 5% of payment amount
 	id, err := bs.bookingRepository.CreateBooking(ctx, booking)
 	if err != nil {
 		return nil, err
@@ -112,8 +112,8 @@ func (bs *bookingService) ReserveMovieSeat(ctx context.Context, showId string, n
 	if err != nil {
 		return nil, err
 	}
-
-	res, err := bs.paymentService.InitiatePayment(booking.PaymentInfo.PaymentAmount, userId, bookingId)
+	paymentToBeDeducted := booking.PaymentInfo.PaymentAmount + booking.PaymentInfo.ConvenienceFees
+	res, err := bs.paymentService.InitiatePayment(paymentToBeDeducted, userId, bookingId)
 	if err != nil {
 		return nil, err
 	}

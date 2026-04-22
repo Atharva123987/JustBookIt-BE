@@ -21,6 +21,7 @@ type PaymentInfo struct {
 	PaymentMethod   string  `json:"payment_method" bson:"payment_method"`
 	TransactionTime string  `json:"transaction_time" bson:"transaction_time"`
 	PaymentAmount   float64 `json:"payment_amount" bson:"payment_amount"`
+	ConvenienceFees float64 `json:"convenience_fees" bson:"convenience_fees"`
 }
 
 type InitiatePaymentResponse struct {
