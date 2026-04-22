@@ -27,10 +27,16 @@ type Show struct {
 	LocationID      string             `json:"location_id" bson:"location_id"`
 	Exits           []string           `json:"exits,omitempty" bson:"exits"`
 	SeatRows        []SeatRow          `json:"seat_rows,omitempty" bson:"seat_rows"`
+	Aisles          Aisles             `json:"aisles,omitempty" bson:"aisles"`
 	PriceLabel      int64              `json:"price_label,omitempty" bson:"price_label"`
 
 	// ❗ Response-only field (not stored in DB)
 	ShowTiming *time.Time `json:"show_timing,omitempty" bson:"-"`
+}
+
+type Aisles struct {
+	VerticalAfterSeatIndexes []int64  `json:"vertical_after_seat_indexes,omitempty" bson:"vertical_after_seat_indexes"`
+	HorizontalAfterRows      []string `json:"horizontal_after_rows,omitempty" bson:"horizontal_after_rows"`
 }
 
 type SeatRow struct {
