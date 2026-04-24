@@ -86,6 +86,6 @@ func (c *userStateController) ClearState(ctx *gin.Context) {
 	}
 
 	ctx.JSON(http.StatusOK, gin.H{
-		"message": "intent cleared",
+		"message": "state cleared",
 	})
 }
