@@ -69,8 +69,8 @@ func (s *Stripe) InitiatePayment(amount int64, bookingId string) (*models.Initia
 			},
 		},
 		ClientReferenceID: stripe.String(bookingId),
-		SuccessURL:        stripe.String("ticketbookingsystemfe://payment/success?bookingId=" + bookingId),
-		CancelURL:         stripe.String("ticketbookingsystemfe://payment/cancel?bookingId=" + bookingId),
+		SuccessURL:        stripe.String("https://just-book-it-ok.vercel.app/payment/success?bookingId=" + bookingId),
+		CancelURL:         stripe.String("https://just-book-it-ok.vercel.app/payment/cancel?bookingId=" + bookingId),
 	}
 
 	// This will auto-create a Customer if you don't set params.Customer
