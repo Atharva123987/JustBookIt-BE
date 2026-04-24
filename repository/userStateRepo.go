@@ -15,12 +15,12 @@ import (
 type UserState struct {
 	// UserID      string    `bson:"user_id" json:"user_id"`
 	DeviceID    string    `bson:"device_id" json:"device_id"`
-	Movie       *string   `bson:"movie,omitempty" json:"movie,omitempty"`
-	NoOfSeats   *int      `bson:"no_of_seats,omitempty" json:"noOfSeats,omitempty"`
-	SeatNumbers []string  `bson:"seat_numbers,omitempty" json:"seatNumbers,omitempty"`
-	MovieID     *string   `bson:"movie_id,omitempty" json:"movieId,omitempty"`
-	Intent      *string   `bson:"intent,omitempty" json:"intent,omitempty"`
-	ShowID      *string   `bson:"show_id,omitempty" json:"showId,omitempty"`
+	Movie       *string   `bson:"movie,omitempty" json:"movie"`
+	NoOfSeats   *int      `bson:"no_of_seats,omitempty" json:"noOfSeats"`
+	SeatNumbers []string  `bson:"seat_numbers,omitempty" json:"seatNumbers"`
+	MovieID     *string   `bson:"movie_id,omitempty" json:"movieId"`
+	Intent      *string   `bson:"intent,omitempty" json:"intent"`
+	ShowID      *string   `bson:"show_id,omitempty" json:"showId"`
 	UpdatedAt   time.Time `bson:"updated_at" json:"updated_at"`
 }
 
