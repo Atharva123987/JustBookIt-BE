@@ -91,7 +91,7 @@ func NewRouter() {
 	{
 		userStateRoute.GET("/", userAuth(), userStateController.GetState)
 		userStateRoute.POST("/", userAuth(), userStateController.UpdateState)
-		userStateRoute.DELETE("/intent", userAuth(), userStateController.ClearIntent)
+		userStateRoute.DELETE("/clear", userAuth(), userStateController.ClearState)
 	}
 
 	webhookRoute := r.Group("/webhook")

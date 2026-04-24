@@ -21,6 +21,7 @@ type UserState struct {
 	MovieID     *string   `bson:"movie_id,omitempty" json:"movieId"`
 	Intent      *string   `bson:"intent,omitempty" json:"intent"`
 	ShowID      *string   `bson:"show_id,omitempty" json:"showId"`
+	BookingID   *string   `bson:"booking_id,omitempty" json:"booking_id"`
 	UpdatedAt   time.Time `bson:"updated_at" json:"updated_at"`
 }
 
@@ -29,7 +30,7 @@ type UserState struct {
 type UserStateRepository interface {
 	GetState(ctx context.Context, deviceId string) (*UserState, error)
 	UpdateState(ctx context.Context, deviceId string, state UserState) error
-	ClearIntent(ctx context.Context, deviceId string) error
+	ClearState(ctx context.Context, deviceId string) error
 }
 
 // ---- Implementation ----
@@ -86,11 +87,19 @@ func (r *userStateRepository) UpdateState(ctx context.Context, deviceId string, 
 	return err
 }
 
-// Clear only intent (and keep rest of state)
-func (r *userStateRepository) ClearIntent(ctx context.Context, deviceId string) error {
+// Clear state (and keep booking_id & updated_at)
+func (r *userStateRepository) ClearState(ctx context.Context, deviceId string) error {
 	update := bson.M{
 		"$unset": bson.M{
-			"intent": "",
+			"movie":        "",
+			"no_of_seats":  "",
+			"seat_numbers": "",
+			"movie_id":     "",
+			"intent":       "",
+			"show_id":      "",
+			// DO NOT unset:
+			// "booking_id"
+			// "updated_at"
 		},
 		"$set": bson.M{
 			"updated_at": time.Now(),

@@ -11,7 +11,7 @@ import (
 type UserStateService interface {
 	GetState(ctx context.Context, deviceID string) (*repository.UserState, error)
 	UpdateState(ctx context.Context, deviceID string, newState repository.UserState) error
-	ClearIntent(ctx context.Context, deviceID string) error
+	ClearState(ctx context.Context, deviceID string) error
 }
 
 // ---- Implementation ----
@@ -72,9 +72,9 @@ func (s *userStateService) UpdateState(ctx context.Context, deviceID string, new
 }
 
 // Clear intent
-func (s *userStateService) ClearIntent(ctx context.Context, deviceID string) error {
+func (s *userStateService) ClearState(ctx context.Context, deviceID string) error {
 	if deviceID == "" {
 		return errors.New("device id is empty")
 	}
-	return s.repo.ClearIntent(ctx, deviceID)
+	return s.repo.ClearState(ctx, deviceID)
 }

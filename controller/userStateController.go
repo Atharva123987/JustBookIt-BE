@@ -72,14 +72,14 @@ func (c *userStateController) UpdateState(ctx *gin.Context) {
 }
 
 // DELETE /user-state/:userId/intent
-func (c *userStateController) ClearIntent(ctx *gin.Context) {
+func (c *userStateController) ClearState(ctx *gin.Context) {
 	deviceID := ctx.GetString("device_id")
 	if deviceID == "" {
 		apiresponse.NewErrorResponse(ctx, errors.New("user id is required"), http.StatusBadRequest)
 		return
 	}
 
-	err := c.service.ClearIntent(ctx, deviceID)
+	err := c.service.ClearState(ctx, deviceID)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
