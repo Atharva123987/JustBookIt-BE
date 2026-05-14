@@ -34,7 +34,15 @@ func (s *userStateService) GetState(ctx context.Context, deviceID string) (*repo
 	if deviceID == "" {
 		return nil, errors.New("device id is empty")
 	}
-	return s.repo.GetState(ctx, deviceID)
+	state, err := s.repo.GetState(ctx, deviceID)
+	if err != nil {
+		// If not found, just create
+		err := s.repo.UpdateState(ctx, deviceID, repository.UserState{})
+		if err != nil {
+			return nil, err
+		}
+	}
+	return state, nil
 }
 
 func (s *userStateService) UpdateState(ctx context.Context, deviceID string, newState repository.UserState) error {
