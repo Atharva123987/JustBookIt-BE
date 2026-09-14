@@ -51,11 +51,13 @@ func NewRouter() {
 	movieRepository := repository.NewMovieRepository(mongoDbAdapter)
 	bookingRepository := repository.NewBookingRepository(mongoDbAdapter, movieRepository)
 	userStateRepository := repository.NewUserStateRepository(mongoDbAdapter)
+	knowledgeRepository := repository.NewKnowledgeRepository(mongoDbAdapter)
 
 	movieService := service.NewMovieService(movieRepository)
 	paymentService := service.NewPaymentService()
 	bookingService := service.NewBookingService(bookingRepository, paymentService, movieRepository)
 	userStateService := service.NewUserStateService(userStateRepository)
+	knowledgeChunkService := service.NewKnowledgeService(knowledgeRepository)
 
 	// Init providers
 	movieController := controller.NewMovieController(movieService)
@@ -63,6 +65,7 @@ func NewRouter() {
 	ticketController := controller.NewTicketController()
 	webhookController := controller.NewWebhookController(bookingService)
 	userStateController := controller.NewUserStateController(userStateService)
+	knowledgeController := controller.NewKnowledgeController(knowledgeChunkService)
 
 	// Routes
 	movieRoute := r.Group("movie")
@@ -92,6 +95,11 @@ func NewRouter() {
 		userStateRoute.GET("/", userAuth(), userStateController.GetState)
 		userStateRoute.POST("/", userAuth(), userStateController.UpdateState)
 		userStateRoute.DELETE("/clear", userAuth(), userStateController.ClearState)
+	}
+
+	knowledgeRoute := r.Group("/knowledge")
+	{
+		knowledgeRoute.PATCH("/", knowledgeController.CreateChunk)
 	}
 
 	webhookRoute := r.Group("/webhook")

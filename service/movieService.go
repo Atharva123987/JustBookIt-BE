@@ -36,8 +36,7 @@ func (ms *movieService) GetAllMovies(ctx *gin.Context, limit int, lastId string,
 		limit = 10
 	}
 	filter := bson.M{}
-	proj := bson.M{"_id": 1, "title": 1, "release_date": 1, "poster_url": 1, "description": 1}
-	opts := options.Find().SetLimit(int64(limit)).SetProjection(proj)
+	opts := options.Find().SetLimit(int64(limit))
 
 	if lastId != "" {
 		id, err := primitive.ObjectIDFromHex(lastId)
