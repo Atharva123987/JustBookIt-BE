@@ -24,19 +24,34 @@ type movieController struct {
 	movieService service.MovieService
 }
 
+// GetAllMovies serves GET /movie (query params only) and POST /movie
+// (query params plus an optional JSON body that can carry embeddings).
 func (mc *movieController) GetAllMovies(ctx *gin.Context) {
 	limit, _ := strconv.Atoi(ctx.DefaultQuery("pageSize", "10"))
 	lastID := ctx.DefaultQuery("lastId", "")
-
 	searchText := ctx.DefaultQuery("searchText", "")
-	movies, err := mc.movieService.GetAllMovies(ctx, limit, lastID, searchText)
+
+	var body models.MovieSearchRequest
+	if ctx.Request.Method == http.MethodPost && ctx.Request.ContentLength != 0 {
+		if err := ctx.ShouldBindJSON(&body); err != nil {
+			apiresponse.NewErrorResponse(ctx, err, http.StatusBadRequest)
+			return
+		}
+		if body.SearchText != "" {
+			searchText = body.SearchText
+		}
+		if body.PageSize != 0 {
+			limit = body.PageSize
+		}
+		if body.LastID != "" {
+			lastID = body.LastID
+		}
+	}
+
+	movies, nextCursor, err := mc.movieService.GetAllMovies(ctx, limit, lastID, searchText, body.Embeddings)
 	if err != nil {
 		apiresponse.NewErrorResponse(ctx, err, http.StatusBadRequest)
 		return
-	}
-	nextCursor := ""
-	if len(movies) != 0 {
-		nextCursor = movies[len(movies)-1].ID.Hex()
 	}
 	resp := gin.H{"movies": movies, "nextCursor": nextCursor}
 	apiresponse.NewSuccessResponse(ctx, resp, http.StatusOK)

@@ -17,6 +17,15 @@ type Movie struct {
 	PosterURL   string             `json:"poster_url,omitempty" bson:"poster_url"`
 }
 
+// MovieSearchRequest is the optional JSON body of POST /movie.
+// Any field left empty falls back to the matching query parameter.
+type MovieSearchRequest struct {
+	SearchText string    `json:"searchText,omitempty"`
+	PageSize   int       `json:"pageSize,omitempty"`
+	LastID     string    `json:"lastId,omitempty"`
+	Embeddings []float32 `json:"embeddings,omitempty"`
+}
+
 type Show struct {
 	ID              primitive.ObjectID `json:"id,omitempty" bson:"_id,omitempty"`
 	MovieID         string             `json:"movie_id" bson:"movie_id"`

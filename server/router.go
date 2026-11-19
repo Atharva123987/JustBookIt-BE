@@ -53,7 +53,7 @@ func NewRouter() {
 	userStateRepository := repository.NewUserStateRepository(mongoDbAdapter)
 	knowledgeRepository := repository.NewKnowledgeRepository(mongoDbAdapter)
 
-	movieService := service.NewMovieService(movieRepository)
+	movieService := service.NewMovieService(movieRepository, knowledgeRepository)
 	paymentService := service.NewPaymentService()
 	bookingService := service.NewBookingService(bookingRepository, paymentService, movieRepository)
 	userStateService := service.NewUserStateService(userStateRepository)
@@ -71,6 +71,7 @@ func NewRouter() {
 	movieRoute := r.Group("movie")
 	{
 		movieRoute.GET("", movieController.GetAllMovies)                        // Get movies by search term and pagination
+		movieRoute.POST("", movieController.GetAllMovies)                       // Same as GET, plus optional embeddings in the body for vector search
 		movieRoute.GET(":movieId", movieController.GetMovieDetails)             // Get movie details like title, desc, cast etc.
 		movieRoute.GET(":movieId/shows", movieController.GetMovieShows)         // Gets the nearby shows according to location
 		movieRoute.GET("seats/:showId", movieController.GetSeatingAvailability) // Gets the seating availability for the show. For ex- 12pm show at Inorbit

@@ -2,6 +2,8 @@ package service
 
 import (
 	"errors"
+	"log"
+	"ticketBookingSystem/internal/config"
 	"ticketBookingSystem/models"
 	"ticketBookingSystem/repository"
 	"time"
@@ -13,25 +15,28 @@ import (
 )
 
 type MovieService interface {
-	GetAllMovies(ctx *gin.Context, limit int, lastId string, searchText string) ([]models.Movie, error)
+	// GetAllMovies returns the text-search results followed by the vector-search
+	// results (when embeddings are given), plus the cursor for the next page.
+	GetAllMovies(ctx *gin.Context, limit int, lastId string, searchText string, embeddings []float32) ([]models.Movie, string, error)
 	GetMovieDetails(ctx *gin.Context, movieId string) (*models.Movie, error)
 	GetShowsByLocation(ctx *gin.Context, location *models.LocationMessage, movieId string, pageSize int, lastId string) ([]models.LocationWithShow, error)
 	GetSeatingAvailability(ctx *gin.Context, showId string) (*models.Show, error)
 }
 
 type movieService struct {
-	movieRepo repository.MovieRepository
+	movieRepo     repository.MovieRepository
+	knowledgeRepo repository.KnowledgeRepository
 }
 
-func NewMovieService(repo repository.MovieRepository) MovieService {
-	return &movieService{movieRepo: repo}
+func NewMovieService(repo repository.MovieRepository, knowledgeRepo repository.KnowledgeRepository) MovieService {
+	return &movieService{movieRepo: repo, knowledgeRepo: knowledgeRepo}
 }
 
 func (ms *movieService) GetMovieDetails(ctx *gin.Context, movieId string) (*models.Movie, error) {
 	return ms.movieRepo.GetMovieById(ctx, movieId)
 }
 
-func (ms *movieService) GetAllMovies(ctx *gin.Context, limit int, lastId string, searchText string) ([]models.Movie, error) {
+func (ms *movieService) GetAllMovies(ctx *gin.Context, limit int, lastId string, searchText string, embeddings []float32) ([]models.Movie, string, error) {
 	if limit < 1 || limit > 100 {
 		limit = 10
 	}
@@ -41,7 +46,7 @@ func (ms *movieService) GetAllMovies(ctx *gin.Context, limit int, lastId string,
 	if lastId != "" {
 		id, err := primitive.ObjectIDFromHex(lastId)
 		if err != nil {
-			return nil, err
+			return nil, "", err
 		}
 		filter["_id"] = bson.M{"$gt": id}
 	}
@@ -52,7 +57,91 @@ func (ms *movieService) GetAllMovies(ctx *gin.Context, limit int, lastId string,
 		}
 	}
 
-	return ms.movieRepo.GetAllMovies(ctx, filter, opts)
+	movies, err := ms.movieRepo.GetAllMovies(ctx, filter, opts)
+	if err != nil {
+		return nil, "", err
+	}
+
+	// The cursor only follows the text-search results, so paging works as before.
+	nextCursor := ""
+	if len(movies) != 0 {
+		nextCursor = movies[len(movies)-1].ID.Hex()
+	}
+
+	// Vector results are only added to the first page; later pages would
+	// otherwise repeat them.
+	if len(embeddings) == 0 || lastId != "" {
+		return movies, nextCursor, nil
+	}
+
+	similar, err := ms.searchMoviesByEmbedding(ctx, embeddings, movies)
+	if err != nil {
+		// Vector search is best effort: keep the text results if it fails
+		// (for example when the Atlas vector index does not exist yet).
+		log.Println("Vector search failed, returning text search results only:", err)
+		return movies, nextCursor, nil
+	}
+
+	return append(movies, similar...), nextCursor, nil
+}
+
+// searchMoviesByEmbedding finds movies whose knowledge chunks are closest to the
+// given embedding, skipping movies already in exclude. Results are ordered by
+// similarity, most similar first.
+func (ms *movieService) searchMoviesByEmbedding(ctx *gin.Context, embeddings []float32, exclude []models.Movie) ([]models.Movie, error) {
+	excludeIDs := make([]string, 0, len(exclude))
+	for _, movie := range exclude {
+		excludeIDs = append(excludeIDs, movie.ID.Hex())
+	}
+
+	chunks, err := ms.knowledgeRepo.VectorSearchChunks(ctx, repository.VectorSearchParams{
+		IndexName:        config.AppConfig.VectorSearchIndex,
+		QueryVector:      embeddings,
+		Limit:            config.AppConfig.VectorSearchLimit,
+		NumCandidates:    config.AppConfig.VectorSearchNumCandidates,
+		MinScore:         config.AppConfig.VectorSearchMinScore,
+		ExcludeSourceIDs: excludeIDs,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	// Collect movie ids in similarity order; one movie may have several chunks.
+	seen := make(map[string]bool, len(chunks))
+	orderedIDs := make([]primitive.ObjectID, 0, len(chunks))
+	for _, chunk := range chunks {
+		if seen[chunk.SourceID] {
+			continue
+		}
+		id, err := primitive.ObjectIDFromHex(chunk.SourceID)
+		if err != nil {
+			log.Println("Skipping knowledge chunk with invalid source_id:", chunk.SourceID)
+			continue
+		}
+		seen[chunk.SourceID] = true
+		orderedIDs = append(orderedIDs, id)
+	}
+	if len(orderedIDs) == 0 {
+		return []models.Movie{}, nil
+	}
+
+	found, err := ms.movieRepo.GetAllMovies(ctx, bson.M{"_id": bson.M{"$in": orderedIDs}})
+	if err != nil {
+		return nil, err
+	}
+
+	// $in does not keep order, so restore the similarity order.
+	byID := make(map[primitive.ObjectID]models.Movie, len(found))
+	for _, movie := range found {
+		byID[movie.ID] = movie
+	}
+	result := make([]models.Movie, 0, len(found))
+	for _, id := range orderedIDs {
+		if movie, ok := byID[id]; ok {
+			result = append(result, movie)
+		}
+	}
+	return result, nil
 }
 
 func (ms *movieService) GetShowsByLocation(ctx *gin.Context, location *models.LocationMessage, movieId string, pageSize int, lastId string) ([]models.LocationWithShow, error) {
