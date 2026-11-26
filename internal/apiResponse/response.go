@@ -1,6 +1,7 @@
 package apiresponse
 
 import (
+	"errors"
 	"ticketBookingSystem/internal/constants"
 
 	"github.com/gin-gonic/gin"
@@ -21,7 +22,15 @@ func NewSuccessResponse(ctx *gin.Context, data interface{}, statusCode int) {
 }
 
 func NewErrorResponse(ctx *gin.Context, err error, statusCode int) {
-	mappedErrorMessage := constants.DomainErrorsMapped[err]
+	// Match with errors.Is instead of indexing the map with err: some error
+	// types (e.g. mongo.CommandError) are not hashable and would panic.
+	mappedErrorMessage := ""
+	for domainErr, message := range constants.DomainErrorsMapped {
+		if errors.Is(err, domainErr) {
+			mappedErrorMessage = message
+			break
+		}
+	}
 	if mappedErrorMessage == "" {
 		mappedErrorMessage = err.Error()
 	}

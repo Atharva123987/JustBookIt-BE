@@ -15,6 +15,7 @@ import (
 
 type MovieController interface {
 	GetAllMovies(ctx *gin.Context)
+	SearchMovies(ctx *gin.Context)
 	GetMovieDetails(ctx *gin.Context)
 	GetMovieShows(ctx *gin.Context)
 	GetSeatingAvailability(ctx *gin.Context)
@@ -41,6 +42,32 @@ func (mc *movieController) GetAllMovies(ctx *gin.Context) {
 	resp := gin.H{"movies": movies, "nextCursor": nextCursor}
 	apiresponse.NewSuccessResponse(ctx, resp, http.StatusOK)
 }
+type searchMoviesRequest struct {
+	SearchText string    `json:"searchText"`
+	PageSize   int       `json:"pageSize"`
+	LastID     string    `json:"lastId"`
+	Embedding  []float32 `json:"embedding"`
+}
+
+// SearchMovies combines the existing text search with a vector search over
+// knowledge_chunks. Text results come first, then vector results. The response
+// has the same shape as GetAllMovies.
+func (mc *movieController) SearchMovies(ctx *gin.Context) {
+	var body searchMoviesRequest
+	if err := ctx.ShouldBindJSON(&body); err != nil {
+		apiresponse.NewErrorResponse(ctx, err, http.StatusBadRequest)
+		return
+	}
+
+	movies, nextCursor, err := mc.movieService.SearchMovies(ctx, body.PageSize, body.LastID, body.SearchText, body.Embedding)
+	if err != nil {
+		apiresponse.NewErrorResponse(ctx, err, http.StatusBadRequest)
+		return
+	}
+	resp := gin.H{"movies": movies, "nextCursor": nextCursor}
+	apiresponse.NewSuccessResponse(ctx, resp, http.StatusOK)
+}
+
 func (mc *movieController) GetMovieDetails(ctx *gin.Context) {
 	movieID := ctx.Param("movieId")
 	if movieID == "" {
