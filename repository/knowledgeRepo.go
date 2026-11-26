@@ -13,6 +13,7 @@ import (
 
 type KnowledgeRepository interface {
 	CreateKnowledgeChunk(ctx context.Context, chunk models.KnowledgeChunk) (models.KnowledgeChunk, error)
+	VectorSearch(ctx context.Context, embedding []float32, indexName string, limit int, minScore float64) ([]models.KnowledgeChunk, error)
 }
 
 type knowledgeRepository struct {
@@ -55,6 +56,58 @@ func (kn *knowledgeRepository) CreateKnowledgeChunk(
 	}
 
 	return chunk, nil
+}
+
+// VectorSearch runs an Atlas $vectorSearch on knowledge_chunks.embedding and returns
+// the matching chunks (best match first) whose similarity score is at least minScore.
+// Only _id, source and source_id are populated on the returned chunks.
+func (kn *knowledgeRepository) VectorSearch(
+	ctx context.Context,
+	embedding []float32,
+	indexName string,
+	limit int,
+	minScore float64,
+) ([]models.KnowledgeChunk, error) {
+	if len(embedding) == 0 || limit < 1 {
+		return []models.KnowledgeChunk{}, nil
+	}
+
+	numCandidates := limit * 20
+	if numCandidates < 100 {
+		numCandidates = 100
+	}
+	if numCandidates > 10000 {
+		numCandidates = 10000
+	}
+
+	pipeline := mongo.Pipeline{
+		{{Key: "$vectorSearch", Value: bson.M{
+			"index":         indexName,
+			"path":          "embedding",
+			"queryVector":   embedding,
+			"numCandidates": numCandidates,
+			"limit":         limit,
+		}}},
+		{{Key: "$project", Value: bson.M{
+			"_id":       1,
+			"source":    1,
+			"source_id": 1,
+			"score":     bson.M{"$meta": "vectorSearchScore"},
+		}}},
+		{{Key: "$match", Value: bson.M{"score": bson.M{"$gte": minScore}}}},
+	}
+
+	cursor, err := kn.db.Collection("knowledge_chunks").Aggregate(ctx, pipeline)
+	if err != nil {
+		return nil, err
+	}
+	defer cursor.Close(ctx)
+
+	result := []models.KnowledgeChunk{}
+	if err := cursor.All(ctx, &result); err != nil {
+		return nil, err
+	}
+	return result, nil
 }
 
 func NewKnowledgeRepository(client *mongo.Client) KnowledgeRepository {
